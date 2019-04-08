@@ -1,4 +1,3 @@
-import java.net.Socket;
 
 public class Vehicule {
 	
@@ -14,9 +13,7 @@ public class Vehicule {
 	Boolean phase = false;
 	
 	int score = 0;
-	
-	Socket sock;
-	
+		
 	
 	public Vehicule() {
 		posX = (Math.random()*1000);

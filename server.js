@@ -6,7 +6,6 @@ var url = require('url');
 
 var dgram = require('dgram');
 
-//var sock = net.createConnection(1664,"localhost");
 
 // Ecouter du broadcast
 var PORT = 2019;
@@ -23,12 +22,17 @@ client.on('message', function (message, remote) {
 
     console.log(remote.address + ':' + remote.port +' - ' + message);
 
-    client.close();
-
 });
+
+
 
 client.bind(PORT);
 
+// fin du broadCast
+
+
+
+// Communication avec le navigateur
 var server = http.createServer((req, res) => {
 
 	var page = url.parse(req.url).pathname;
@@ -103,3 +107,12 @@ io.sockets.on('connection', function (socket) {
 
 
 server.listen(8000);
+
+
+// fin de la comm
+
+var sock = net.createConnection(1664,"localhost");
+sock.write('Hello World!\r\n');
+
+
+

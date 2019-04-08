@@ -20,7 +20,7 @@ client.on('listening', function () {
 
 client.on('message', function (message, remote) {
 
-    console.log(remote.address + ':' + remote.port +' - ' + message);
+    console.log(message.toString());
 
 });
 
@@ -111,14 +111,19 @@ server.listen(8000);
 
 // fin de la comm
 
-var sock = net.createConnection(1664,"localhost");
+// var sock = net.createConnection(1664,"localhost");
+// // sock.write('CONNECT/riri\r\n');
+// sock.write('Hi\r\n');
 
+// console.log(sock.bytesRead)
+
+var sock  = new net.Socket();
+sock.connect({
+  port:1664
+});
 sock.write('CONNECT/riri\r\n');
-
-console.log(sock.bytesRead);
-
-// sock.on('data', function(data) {
-//     console.log('Received: ' + data);
-// });
-
+//sock.write('Hi\r\n');
+sock.on('data', function(data){
+    console.log(data.toString())
+})
 

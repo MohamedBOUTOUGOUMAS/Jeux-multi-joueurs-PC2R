@@ -112,7 +112,13 @@ server.listen(8000);
 // fin de la comm
 
 var sock = net.createConnection(1664,"localhost");
-sock.write('Hello World!\r\n');
 
+sock.write('CONNECT/riri\r\n');
+
+console.log(sock.bytesRead);
+
+// sock.on('data', function(data) {
+//     console.log('Received: ' + data);
+// });
 
 

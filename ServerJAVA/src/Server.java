@@ -30,10 +30,13 @@ public class Server {
 	static Map<String, Vehicule> vehicules = new HashMap<>();
 	static double objectifX = Math.random() * 1000;
 	static double objectifY = Math.random() * 1000;
-	static double winCap = 100;
+	static int winCap = 100;
 	static String coords = "";
 	static ArrayList<Socket> socks = new ArrayList<>();
 	static int index = 0;
+	
+	
+	
 	public static void broadcast(String broadcastMessage, InetAddress address) throws IOException {
 		DatagramSocket socket = null;
 		socket = new DatagramSocket();
@@ -51,36 +54,38 @@ public class Server {
 			socketserver = new ServerSocket(1664);
 			ExecutorService pool = Executors.newFixedThreadPool(2);
 
-			// Broadcast les MAJ a tous les clients
-            Timer time = new Timer();
-            time.schedule(new TimerTask() {
-           	 @Override
-           		public void run() {
-           		 	System.out.println("MAJ");
-           			String str = "";
-           			for(Entry<String, Vehicule> e : vehicules.entrySet()) {
-           				vehicules.get(e.getKey()).phase = true;
-           				str += e.getKey()+":X"+e.getValue().posX+"Y"+e.getValue().posY+"|";
-           			}
-           			try {
-           				str = str.substring(0, str.length()-1);
-           			}catch (Exception e) {
-						// TODO: handle exception
-					}
-           			
-           			try {
-           				broadcast(str, InetAddress.getByName("255.255.255.255"));
-           				
-           			} catch (UnknownHostException e1) {
-           				// TODO Auto-generated catch block
-           				e1.printStackTrace();
-           			} catch (IOException e1) {
-           				// TODO Auto-generated catch block
-           				e1.printStackTrace();
-           			}
-           		}
-
-            }, 0, 2000);
+//			// Broadcast les MAJ a tous les clients
+//            Timer time = new Timer();
+//            time.schedule(new TimerTask() {
+//           	 @Override
+//           		public void run() {
+//           		 	System.out.println("MAJ");
+//           		 	//TICK/vcoords
+//           			String str = "TICK/";
+//           			for(Entry<String, Vehicule> e : vehicules.entrySet()) {
+//           				vehicules.get(e.getKey()).phase = true;
+//           				str += e.getKey()+":X"+e.getValue().posX+"Y"+e.getValue().posY+"VX"+e.getValue().vitessX
+//           						+"VY"+e.getValue().vitessY+"T"+e.getValue().angle+"|";
+//           			}
+//           			try {
+//           				str = str.substring(0, str.length()-1);
+//           			}catch (Exception e) {
+//						// TODO: handle exception
+//					}
+//           			
+//           			try {
+//           				broadcast(str, InetAddress.getByName("255.255.255.255"));
+//           				
+//           			} catch (UnknownHostException e1) {
+//           				// TODO Auto-generated catch block
+//           				e1.printStackTrace();
+//           			} catch (IOException e1) {
+//           				// TODO Auto-generated catch block
+//           				e1.printStackTrace();
+//           			}
+//           		}
+//
+//            }, 0, 2000);
 
 //         // lancement de la session.
 //            

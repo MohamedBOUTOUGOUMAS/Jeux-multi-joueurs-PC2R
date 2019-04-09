@@ -75,7 +75,7 @@ public class Work implements Runnable {
 
 				if (arg[0].equals("NEWPCOM")) {
 					String[] com = arg[1].split("T");
-					double a = Double.parseDouble(com[0].substring(1, com[0].length() - 1));
+					double a = Double.parseDouble(com[0].substring(1, com[0].length()));
 					int nb = Integer.parseInt(com[1]);
 
 					// a revoir plus tard !!!!!!!!!!!!!!!

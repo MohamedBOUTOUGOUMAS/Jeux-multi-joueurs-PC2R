@@ -80,10 +80,12 @@ public class Work implements Runnable {
 
 					// a revoir plus tard !!!!!!!!!!!!!!!
 					Vehicule veh = Server.vehicules.get(client);
-					veh.angle = nb % 360;
-					veh.posX = veh.posX + a;
-					veh.posY = veh.posY + a;
+					veh.angle = (int) (a % 360);
+					// on suppose qu'une impulsion fait avancer le vehicule de 20 px !!!!!!!
+					veh.posX = veh.posX + nb*20;
+					veh.posY = veh.posY + nb*20;
 					Server.vehicules.put(client, veh);
+					
 					// le vehicule passe a proximité d'un objectif
 					if (Server.objectifX - veh.posX < 50 && Server.objectifY - veh.posY < 50) {
 						veh.score++;
@@ -97,6 +99,7 @@ public class Work implements Runnable {
 						scores = scores.substring(0, scores.length() - 1);
 						bfOut.println("NEWOBJ/X" + Server.objectifX + "Y" + Server.objectifY + "/" + scores);
 					}
+					
 					// Winner
 					if (veh.score == Server.winCap) {
 						String scores = "";

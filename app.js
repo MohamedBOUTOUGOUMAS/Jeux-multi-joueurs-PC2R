@@ -1,6 +1,11 @@
 var socket = io();
 var currentShip;
 
+var angle = 0;
+var clics = 0;
+var step = 0;
+
+
 /**
  * for the design :
  * list of the names of the connected players
@@ -126,6 +131,16 @@ socket.on('WELCOME', function(swcoord){
 
     });
 
+    socket.on('TICK', (vcoords) =>{
+
+      vcoords.forEach(elt => {
+
+        const allPlayersInfo = elt.split(':');
+        const enemyId = allPlayersInfo[0];
+
+      });
+    });
+
     socket.on('PLAYERLEFT', (enemyId) => {
       console.log('Player : ' + enemyId + ' is gone !');
       console.log(enemyId);
@@ -176,9 +191,7 @@ socket.on('WELCOME', function(swcoord){
 
   };
 
-  var clics = 0;
-  var step = 0;
-
+  
   function update() {
     if (this.ship) {
       /* 
@@ -186,12 +199,15 @@ socket.on('WELCOME', function(swcoord){
       */
       if (this.cursor.left.isDown) {
         this.ship.setAngularVelocity(-150);
+        angle = this.ship.rotation;
       }
       else if (this.cursor.right.isDown) {
         this.ship.setAngularVelocity(150);
+        angle = this.ship.rotation;
       }
       else {
         this.ship.setAngularVelocity(0);
+        angle = this.ship.rotation;
       }
 
       if (this.cursor.up.isDown) {
@@ -200,9 +216,11 @@ socket.on('WELCOME', function(swcoord){
         step++;
         // this.physics.velocityFromRotation(constthis.ship.rotation, 100, this.ship.body.velocity);
         this.physics.velocityFromRotation(this.ship.rotation, 100, this.ship.body.acceleration);
+        angle = this.ship.rotation;
       }
       else if (this.cursor.down.isDown) {
         this.ship.setAcceleration(this.ship.body.acceleration - 5);
+        angle = this.ship.rotation;
       }
       // console.log("Pos after x :" + this.ship.x);
       // console.log("Pos after y :" + this.ship.y);s
@@ -212,11 +230,13 @@ socket.on('WELCOME', function(swcoord){
           this.bomb = this.physics.add.image(this.ship.x, this.ship.y, 'bomb');
           this.bomb.setImmovable(true);
           this.bombs.setText(this.bombs.text - 1);
+          angle = this.ship.rotation;
         } else {
           if (clics > 5) {
             clics = 0;
           }
         }
+        angle = this.ship.rotation;
       }
 
       if (this.score.text == '3') {
@@ -241,11 +261,19 @@ socket.on('WELCOME', function(swcoord){
 
   // var tick = 2000;
   // var i = 0;
+  // currentShip = this.ship;
   // setInterval(() => {
   //   socket.emit('NEWCOM', { rotation: currentShip.body.rotation, step: step });
   // }, 5000);
 
 });
+
+  setInterval(() => {
+    socket.emit('NEWCOM', { rotation: angle, step: step });
+  }, 5000);
+
+
+
 
 function moveAward(game, coord) {
 

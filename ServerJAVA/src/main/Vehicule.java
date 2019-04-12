@@ -5,7 +5,7 @@ public class Vehicule {
 	double posX;
 	double posY;
 
-	int angle;
+	double angle;
 
 	double vitessX;
 	double vitessY;

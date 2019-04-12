@@ -17,44 +17,44 @@ app.get('/:user', function (req, res) {
 });
 
 // Ecouteur du broadcast
-var PORT = 2019;
+// var PORT = 2019;
 
-var client = dgram.createSocket('udp4');
+// var client = dgram.createSocket('udp4');
 
-client.on('listening', function () {
-    var address = client.address();
-    console.log('UDP Client listening on ' + address.address + ":" + address.port);
-    client.setBroadcast(true);
-});
-client.bind(PORT);
+// client.on('listening', function () {
+//     var address = client.address();
+//     console.log('UDP Client listening on ' + address.address + ":" + address.port);
+//     client.setBroadcast(true);
+// });
+// client.bind(PORT);
 
 var playersConnected = [];
 
 io.on('connection', function (socket) {
 
-    client.on('message', function (message, remote) {
+    // client.on('message', function (message, remote) {
 
-        console.log(message.toString());
-        var msg = message.toString().replace(/\n/g, '').split('/');
+    //     console.log(message.toString());
+    //     var msg = message.toString().replace(/\n/g, '').split('/');
 
-        switch (msg[0]) {
-            case 'NEWPLAYER':
-                console.log('newplayer : ' + msg[1]);
-                playersConnected.push(msg[1]);
-                // io.emit('NEWPLAYER', playersConnected);
-                break;
-            case 'SESSION':
-                console.log("session");
-                var coords = msg[1].split('|');
-                coords = coords.slice(0, coords.length - 1);
-                console.log(coords);
-                io.emit('SESSION', coords);
-                break;
-            default:
-                break;
-        }
+    //     switch (msg[0]) {
+    //         case 'NEWPLAYER':
+    //             console.log('newplayer : ' + msg[1]);
+    //             playersConnected.push(msg[1]);
+    //             // io.emit('NEWPLAYER', playersConnected);
+    //             break;
+    //         case 'SESSION':
+    //             console.log("session");
+    //             var coords = msg[1].split('|');
+    //             coords = coords.slice(0, coords.length - 1);
+    //             console.log(coords);
+    //             io.emit('SESSION', coords);
+    //             break;
+    //         default:
+    //             break;
+    //     }
 
-    });
+    // });
 
     var sock = new net.Socket();
     sock.connect({
@@ -77,10 +77,29 @@ io.on('connection', function (socket) {
                 console.log({ cord: { x: x, y: y } });
                 socket.emit('WELCOME', { cord: { x: x, y: y }, playerId: playerId });
                 break;
-            case 'SESSION':
-                console.log('session');
+            // case 'SESSION':
+            //     console.log('session');
 
+            //     break;
+
+            case 'NEWPLAYER':
+                console.log('newplayer : ' + msg[1]);
+                playersConnected.push(msg[1]);
+                // io.emit('NEWPLAYER', playersConnected);
                 break;
+
+            case 'SESSION':
+                console.log("session");
+                var coords = msg[1].split('|');
+                console.log(coords);
+                io.emit('SESSION', coords);
+                break;
+
+            case 'TICK':
+                console.log("tick");
+                var vcoords = msg[1].split('|');
+                console.log(vcoords);
+                io.emit('TICK', vcoords);
             default:
                 console.log('default');
                 break;
@@ -89,6 +108,7 @@ io.on('connection', function (socket) {
 
 
     socket.on('NEWCOM', function (comms) {
+        console.log("NEWCOM")
         console.log(comms);
         sock.write('NEWCOM/A' + comms.rotation + 'T' + comms.step + '\r\n');
     });

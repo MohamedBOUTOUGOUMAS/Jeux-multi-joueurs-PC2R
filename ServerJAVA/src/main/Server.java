@@ -29,9 +29,8 @@ public class Server {
 	static String coords = "";
 	static ArrayList<Socket> socks = new ArrayList<>();
 	static int index = 0;
-
-	
-	
+	static int turnit = 150;
+	static int thrustit = 100;
 	
 //	public static void broadcast(String broadcastMessage, InetAddress address) throws IOException {
 //		DatagramSocket socket = null;
@@ -105,7 +104,7 @@ public class Server {
            			}
            		}
 
-            }, 15000, 2000);
+            }, 22000, 2000);
 
 //         // lancement de la session.
 
@@ -134,7 +133,7 @@ public class Server {
 						e.printStackTrace();
 					}
 				}
-			}, /*20000, */15000);
+			}, /*20000, */20000);
 
 //			final Duration timeout = Duration.ofSeconds(20);
 //

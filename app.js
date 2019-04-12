@@ -5,6 +5,8 @@ var angle = 0;
 var clics = 0;
 var step = 0;
 
+var turnit = 150;
+var thrustit = 100;
 
 /**
  * for the design :
@@ -120,7 +122,11 @@ socket.on('WELCOME', function(swcoord){
           addEnemyShip(self, [enemyId, coord]);
         } else {
           addNewShip(self, coord);
+          if(self.ship)
+            console.log(self.ship)
         }
+
+        console.log(self)
 
         // console.log(playerInfo[0]);
         // console.log(playerInfo[1]);
@@ -129,16 +135,36 @@ socket.on('WELCOME', function(swcoord){
 
       console.log('session start client');
 
+      
+
+
     });
+
 
     socket.on('TICK', (vcoords) =>{
 
-      vcoords.forEach(elt => {
+        vcoords.forEach(elt => {
 
-        const allPlayersInfo = elt.split(':');
-        const enemyId = allPlayersInfo[0];
+          const allPlayersInfo = elt.split(':');
+          const enemyId = allPlayersInfo[0];
+          const vcoord = getXYVXVY(allPlayersInfo[1]);
+          console.log("vcoords");
+          console.log(vcoord);
+          self.enemyShips.getChildren().forEach((enemyShip) => {
+            if (enemyId === enemyShip.enemyId) {
+              // enemyShip.body.x = vcoord.x;
+              // enemyShip.body.y = vcoord.y;
+              enemyShip.body.setRotation(vcoord.t);
+              enemyShip.body.setVelocity(vcoord.vx,vcoord.vy);
+            }
+          });
+          if(swcoord.playerId === enemyId){
+            self.ship.setRotation(vcoord.t);
+            self.ship.setVelocity(vcoord.vx, vcoord.vy);
+          }
+          
+        });
 
-      });
     });
 
     socket.on('PLAYERLEFT', (enemyId) => {
@@ -198,16 +224,15 @@ socket.on('WELCOME', function(swcoord){
         Using velocityFromRotation
       */
       if (this.cursor.left.isDown) {
-        this.ship.setAngularVelocity(-150);
+        //this.ship.setAngularVelocity(-turnit);
         angle = this.ship.rotation;
       }
       else if (this.cursor.right.isDown) {
-        this.ship.setAngularVelocity(150);
+        //this.ship.setAngularVelocity(turnit);
         angle = this.ship.rotation;
       }
       else {
-        this.ship.setAngularVelocity(0);
-        angle = this.ship.rotation;
+        //this.ship.setAngularVelocity(0);
       }
 
       if (this.cursor.up.isDown) {
@@ -215,12 +240,12 @@ socket.on('WELCOME', function(swcoord){
         // console.log("Pos before y :" + this.ship.y);
         step++;
         // this.physics.velocityFromRotation(constthis.ship.rotation, 100, this.ship.body.velocity);
-        this.physics.velocityFromRotation(this.ship.rotation, 100, this.ship.body.acceleration);
-        angle = this.ship.rotation;
+        //this.physics.velocityFromRotation(this.ship.rotation, thrustit, this.ship.body.acceleration);
+      
       }
       else if (this.cursor.down.isDown) {
-        this.ship.setAcceleration(this.ship.body.acceleration - 5);
-        angle = this.ship.rotation;
+        //this.ship.setAcceleration(this.ship.body.acceleration - 5);
+        step--;
       }
       // console.log("Pos after x :" + this.ship.x);
       // console.log("Pos after y :" + this.ship.y);s
@@ -303,6 +328,24 @@ function getXY(coord) {
   return { x: x, y: y };
 
 }
+
+function getXYVXVY(coord) {
+
+  var indexX = coord.indexOf('X');
+  var indexY = coord.indexOf('Y');
+  var indexVX = coord.indexOf('VX');
+  var indexVY = coord.indexOf('VY');
+  var indexT = coord.indexOf('T');
+  var x = parseInt(coord.substring(indexX + 1, indexY));
+  var y = parseInt(coord.substring(indexY + 1));
+  var vx = parseInt(coord.substring(indexVX + 2, indexVY));
+  var vy = parseInt(coord.substring(indexVY + 2, indexT));
+  var t = parseInt(coord.substring(indexT + 1));
+  return { x: x, y: y ,vx: vx, vy: vy, t: t};
+
+}
+
+
 
 function addEnemyShip(game, info) {
   const enemyId = info[0];

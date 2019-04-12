@@ -1,151 +1,288 @@
+var socket = io();
+var currentShip;
 
-var tick = 2000;
-var socket = io.connect('http://localhost:8000');
+/**
+ * for the design :
+ * list of the names of the connected players
+ */
+var playersConnected = [];
 
-var posX;
-var posY;
-var angle;
+socket.on('WELCOME', function(swcoord){
 
-var config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+  /**
+   * Config phaser
+   */
+  var config = {
+    type: Phaser.canvas,
+    width: 1440,
+    height: 895,
     physics: {
-        default: 'arcade',
-        arcade: {
-            //gravity: { y: 300 },
-            debug: false
-        }
+      default: 'arcade',
+      arcade: {
+        gravity: {
+          y: 0
+        },
+        debug: true
+      }
     },
     scene: {
-        preload: preload,
-        create: create,
-        update: update
+      preload: preload,
+      create: create,
+      update: update
     }
-};
+  };
 
-var game = new Phaser.Game(config);
+  var game = new Phaser.Game(config);
 
-function preload (){
+  function preload() {
 
-	this.load.image('ground', '/b.png');
-  this.load.image('car','/car.png');
-    //this.load.image('car','car_blue_3.png');
-	this.load.image('car2','/car2.png');
-};
+    this.load.tilemapTiledJSON("map", "map.json");
 
-function create (){
+    this.load.image("tiles", "tuxmon-sample-32px.png");
+    this.load.image('carOther', 'car_red_3.png');
+    this.load.image('car', 'car_blue_3.png');
+    this.load.image('ship', 'car_blue_3.png');
+    this.load.image('bomb', 'bomb.png');
+    this.load.image('award', 'award.png');
 
-	this.add.image(400, 300, 'ground');
+    this.load.bitmapFont('nGamef', 'nGamef.png', 'nGamef.xml');
+    this.load.bitmapFont('tGamef', 'tGamef.png', 'tGamef.xml');
 
-	this.mycar = this.physics.add.sprite(200, 300, 'car').setScale(0.3);
-	this.therecar = this.add.sprite(150, 150, 'car2').setScale(0.3);
+  };
 
-	this.cursor = this.input.keyboard.createCursorKeys();
-  posX = this.mycar.body.velocity.x;
-  posY = this.mycar.body.velocity.y;
-  angle = this.mycar.angle;
+  function create() {
 
-};
+    var self = this;
 
-function update (){
-  /*
-    New code
-  */
+    this.enemyShips = this.physics.add.group();
 
-  this.mycar.body.velocity.x = 0;
-  this.mycar.body.velocity.y = 0;
-  this.mycar.body.angularVelocity = 0;
+    /**
+     * lake of death
+     */
+    this.zone = this.add.zone(1000, 250).setSize(200, 200);
+    this.physics.world.enable(this.zone);
+    this.zone.body.setAllowGravity(false);
+    this.zone.body.moves = false;
 
-  if (this.cursor.left.isDown && this.cursor.up.isDown) {
-    angle -= 200 % 360;
-    this.mycar.body.setAngularVelocity(-200);
-  } else if (this.cursor.right.isDown && this.cursor.up.isDown) {
-    angle += 200 % 360;
-    this.mycar.body.setAngularVelocity(200);
-  }
+    const map = this.make.tilemap({
+      key: "map"
+    });
 
-  if (this.cursor.up.isDown) {
-    this.physics.velocityFromAngle(this.mycar.angle, 200, this.mycar.body.velocity);
-    posX = this.mycar.body.velocity.x;
-    posY = this.mycar.body.velocity.y;
-    angle = this.mycar.angle % 360
-  } else if(this.cursor.down.isDown){
-	     this.physics.velocityFromAngle(this.mycar.angle-180, 200, this.mycar.body.velocity);
-       posX = this.mycar.body.velocity.x;
-       posY = this.mycar.body.velocity.y;
-       angle = this.mycar.angle % 360
-	}
+    const tileset = map.addTilesetImage("tuxmon-sample-32px", "tiles");
+    const ground = map.createStaticLayer("ground", tileset, 0, 0);
+    const gras = map.createStaticLayer("gras", tileset, 0, 0);
+    const lake = map.createStaticLayer("lake", tileset, 0, 0);
+    const fountain = map.createStaticLayer("fountain", tileset, 0, 0);
+    const obstacles = map.createStaticLayer("obstacles", tileset, 0, 0);
 
-  /*
-    old code
-  */
-	// // this.mycar.body.velocity.x = 0;
-  //
-	// //this.mycar.setAngularVelocity(0);
-  //
-	// this.physics.velocityFromRotation(0);
-  //
-	// if(this.cursor.left.isDown && this.cursor.up.isDown){
-	// 	//this.mycar.body.velocity.x = -300;
-	// 	acc = this.mycar.body.acceleration*0.1;
-  //
-	// 	this.mycar.setAcceleration(acc);
-	// 	this.mycar.setAngularVelocity(-20);
-	// }else if(this.cursor.right.isDown && this.cursor.up.isDown){
-	// 	//this.mycar.body.velocity.x = 300;
-	// 	acc = this.mycar.body.acceleration*0.1;
-	// 	this.mycar.setAcceleration();
-	// 	this.mycar.setAngularVelocity(20);
-	// }else{
-	// 	this.mycar.setAngularVelocity(0);
-	// }
-  //
-  //
-  //
-  //
-  //
-	// if(this.cursor.up.isDown){
-  //
-	// 	this.physics.velocityFromRotation(this.mycar.rotation - 1.5, 40, this.mycar.body.acceleration);
-  //
-	// }else if(this.cursor.down.isDown){
-	// 	this.physics.velocityFromRotation(this.mycar.rotation + 1.5, 40, this.mycar.body.acceleration);
-	// }else{
-	// 	this.mycar.setAcceleration(0);
-	// 	this.mycar.body.velocity.y = 0;
-	// 	this.mycar.body.velocity.x = 0;
-	// }
+    obstacles.setCollisionByProperty({
+      collides: true
+    });
 
+    // this.physics.add.collider(this.ship, this.bomb);
 
+    // this.physics.add.overlap(this.ship, this.zone, () => {
+    //   this.ship.disableBody(true, true);
+    // });
 
-	this.physics.world.wrap(this.mycar, 1);
+    this.cursor = this.input.keyboard.createCursorKeys();
 
-};
+    // this.add.text(140, 0, '40', { fontFamily: 'Arial', fontSize: '32px', fill: '#FF0000'});
+    this.add.bitmapText(0, 0, 'tGamef', ' SCORE : ', 32);
+    this.score = this.add.bitmapText(220, 0, 'nGamef', 0, 32);
 
+    this.add.bitmapText(1170, 0, 'tGamef', ' BOMBS : ', 32);
+    this.bombs = this.add.bitmapText(1390, 0, 'nGamef', 5, 32);
 
+    // socket.on('NEWPLAYER',(playerIds)=>{
+    //   playersConnected = playerIds;
+    // });
 
-setInterval(function(){
+    socket.on('SESSION', (sscoord) => {
+      
+      self.enemyShips.destroy(true);
+      self.enemyShips = self.physics.add.group();
 
-  console.log("posX "+posX)
-  console.log("posY "+posY)
-  console.log("angle "+angle)
-  
-	socket.emit('move',{
-    x : posX,
-    y : posY,
-    angle : angle
-  });
+      sscoord.forEach(elt => {
 
-}, tick);
+        const allPlayersInfo = elt.split(':');
+        const enemyId = allPlayersInfo[0];
+        const coord = getXY(allPlayersInfo[1]);
+        console.log(enemyId);
 
+        if (enemyId !== swcoord.playerId) {
+          // enemyShip.push({ id: playerInfo[0], x: coord.x, y: coord.y, rot: 180 });
+          addEnemyShip(self, [enemyId, coord]);
+        } else {
+          addNewShip(self, coord);
+        }
 
+        // console.log(playerInfo[0]);
+        // console.log(playerInfo[1]);
 
+      });
 
+      console.log('session start client');
 
-socket.on('message', function(message) {
+    });
 
-        console.log('Le serveur a un message pour vous : ' + message);
+    socket.on('PLAYERLEFT', (enemyId) => {
+      console.log('Player : ' + enemyId + ' is gone !');
+      console.log(enemyId);
+      console.log(self.enemyShips.getLength());
+      self.enemyShips.destroy(true);
+      self.enemyShips.getChildren().forEach((enemyShip) => {
+        if (enemyId === enemyShip.enemyId) {
+          console.log('fuck');
+          enemyShip.destroy();
+        }
+      });
+    });
+
+    /**  
+     * generate event !!
+     */
+    /*
+    this.id = 'toto'; // A initialiser !! 
+    
+    this.socket.on('scoresUpdated', function (scores) {
+      this.score.setText(scores[this.id]);
+    });
+    
+    this.socket.on('awardPosition', function (awardPosition) {
+      if (this.award) this.award.destroy();
+      this.award = this.physics.add.image(awardPosition.x, awardPosition.y, 'award').setDisplaySize(53, 40);
+      this.award.physics.add.overlap(this.ship, this.award, function () {
+        this.socket.emit('awardEarned');
+      }, null, this);
+    });
+    */
+
+    /**
+     * Test : Randomly positioning the award && set score
+     * A modifier avec event node !! on.awardEarned
+     **/
+
+    var f = () => {
+      if (this.award) this.award.destroy();
+      this.score.setText(eval(this.score.text) + 1);
+      this.award = this.physics.add.image(Math.floor(Math.random() * 600), Math.floor(Math.random() * 450), 'award').setDisplaySize(48, 48);
+      this.physics.add.overlap(this.ship, this.award, f);
+      this.award.body.bounce.setTo(1);
+    }
+    this.award = this.physics.add.image(swcoord.cord.x, swcoord.cord.y, 'award').setDisplaySize(48, 48);
+
+    // this.physics.add.overlap(this.ship, this.award, f);
+
+  };
+
+  var clics = 0;
+  var step = 0;
+
+  function update() {
+    if (this.ship) {
+      /* 
+        Using velocityFromRotation
+      */
+      if (this.cursor.left.isDown) {
+        this.ship.setAngularVelocity(-150);
+      }
+      else if (this.cursor.right.isDown) {
+        this.ship.setAngularVelocity(150);
+      }
+      else {
+        this.ship.setAngularVelocity(0);
+      }
+
+      if (this.cursor.up.isDown) {
+        // console.log("Pos before x :" + this.ship.x);
+        // console.log("Pos before y :" + this.ship.y);
+        step++;
+        // this.physics.velocityFromRotation(constthis.ship.rotation, 100, this.ship.body.velocity);
+        this.physics.velocityFromRotation(this.ship.rotation, 100, this.ship.body.acceleration);
+      }
+      else if (this.cursor.down.isDown) {
+        this.ship.setAcceleration(this.ship.body.acceleration - 5);
+      }
+      // console.log("Pos after x :" + this.ship.x);
+      // console.log("Pos after y :" + this.ship.y);s
+      if (this.cursor.space.isDown) {
+        clics++;
+        if (clics <= 1 && this.bombs.text > 0) {
+          this.bomb = this.physics.add.image(this.ship.x, this.ship.y, 'bomb');
+          this.bomb.setImmovable(true);
+          this.bombs.setText(this.bombs.text - 1);
+        } else {
+          if (clics > 5) {
+            clics = 0;
+          }
+        }
+      }
+
+      if (this.score.text == '3') {
+        this.physics.pause();
+        this.add.bitmapText(400, 350, 'tGamef', 'WIN', 64);
+      }
+
+      // this.physics.add.collider(this.ship, this.therecar);
+      // this.physics.add.collider(this.therecar, this.bomb, () => { // A revoir !!!
+
+      //   this.therecar.disableBody(true, false);
+      //   this.bomb.disableBody(true, true);
+
+      //   let x = this.therecar.x;
+      //   let y = this.therecar.y;
+
+      this.physics.add.collider(this.award, this.zone);
+      this.physics.world.wrap(this.ship, 50);
+
+    }
+  };
+
+  // var tick = 2000;
+  // var i = 0;
+  // setInterval(() => {
+  //   socket.emit('NEWCOM', { rotation: currentShip.body.rotation, step: step });
+  // }, 5000);
 
 });
 
+function moveAward(game, coord) {
+
+  game.award = game.physics.add.image(x, y, 'award').setDisplaySize(48, 48);
+
+}
+
+function addNewShip(game, coord) {
+  if (game.ship) game.ship.destroy();
+  game.ship = game.physics.add.sprite(coord.x, coord.y, 'car').setScale(0.5);
+  game.ship.setImmovable(false);
+  game.ship.setDrag(200);
+  game.ship.setMaxVelocity(200);
+  game.ship.body.bounce.setTo(1);
+
+  return game.ship;
+
+}
+
+function getXY(coord) {
+
+  var indexX = coord.indexOf('X');
+  var indexY = coord.indexOf('Y');
+  var x = parseInt(coord.substring(indexX + 1, indexY));
+  var y = parseInt(coord.substring(indexY + 1));
+
+  return { x: x, y: y };
+
+}
+
+function addEnemyShip(game, info) {
+  const enemyId = info[0];
+  const coord = info[1];
+  // console.log('Enemy : ' + enemyId + ' coords - x:' + coord.x + ' y:' + coord.y);
+  const enemyShip = game.physics.add.sprite(coord.x, coord.y, 'carOther').setScale(0.5);
+  enemyShip.setImmovable(false);
+  enemyShip.body.bounce.setTo(1);
+  enemyShip.enemyId = enemyId;
+  game.enemyShips.add(enemyShip);
+}

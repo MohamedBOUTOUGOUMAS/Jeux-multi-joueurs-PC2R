@@ -34,11 +34,11 @@ public class Work implements Runnable {
 				String cmd = bf.readLine();
 				String[] arg = cmd.split("/");
 
-				// System.out.println(cmd);
+				//System.out.println(cmd);
 				synchronized (this) {
 
 					switch (arg[0]) {
-					
+
 					case "CONNECT":
 						if (Server.vehicules.containsKey(arg[1])) {
 
@@ -62,13 +62,17 @@ public class Work implements Runnable {
 							for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
 								scores += e.getKey() + ":" + e.getValue().score + "|";
 							}
-
+							
 							// Server.broadcast("NEWPLAYER/" + arg[1],
 							// InetAddress.getByName("255.255.255.255"));
-							Server.broadcast("NEWPLAYER/" + arg[1], numberThread);
+							Tools.broadcast("NEWPLAYER/" + arg[1], numberThread);
 							scores = scores.substring(0, scores.length() - 1);
 							str += scores + "/";
-							str += "X" + Server.objectifX + "Y" + Server.objectifY;
+							str += "X" + Server.objectifX + "Y" + Server.objectifY+"/";
+							for(Obstacle o : Server.obstacles) {
+								str+= "X"+o.posX+"Y"+o.posY+"|";
+							}
+							str = str.substring(0, str.length() - 1);
 							bfOut.println(str);
 						}
 						break;
@@ -76,40 +80,90 @@ public class Work implements Runnable {
 					case "EXIT":
 						System.out.println("A player is gone : " + arg[1]);
 						Server.vehicules.remove(arg[1].toString());
-						System.out.println(Server.vehicules.size());
-						System.out.println(Server.vehicules);
 						// Server.broadcast("PLAYERLEFT/" +
 						// arg[1],InetAddress.getByName("255.255.255.255"));
-						Server.broadcast("PLAYERLEFT/" + arg[1], numberThread);
+						Tools.broadcast("PLAYERLEFT/" + arg[1], numberThread);
 						Server.socks.remove(numberThread);
+						break;
+					
+					case "ENVOI":
+						Tools.broadcast("RECEPTION/"+arg[1]);
 						break;
 
 					case "NEWCOM":
-						System.out.println("NEWCOM");
 						String[] com = arg[1].split("T");
 						double a = Double.parseDouble(com[0].substring(1, com[0].length()));
 						int nb = Integer.parseInt(com[1]);
-						System.out.println("A " + a + " T " + nb);
 						// a revoir plus tard !!!!!!!!!!!!!!!
 						Vehicule veh = Server.vehicules.get(client);
-						System.out.println(veh);
-						System.out.println("veh angle " + veh.angle);
-						System.out.println("");
+						veh.setAngle(a);
+						
+//						veh.vitessX = Server.turnit * Math.cos(veh.angle) * Server.thrustit*nb ;
+//						veh.vitessY = Server.turnit * Math.sin(veh.angle) * Server.thrustit*nb  ; // Tres bonne version !!!!!
 
-						veh.angle = a;
-
-						veh.vitessX = (veh.vitessX + Server.turnit * Math.cos(veh.angle)) + nb * Server.thrustit;
-						veh.vitessY = (veh.vitessY + Server.turnit * Math.sin(veh.angle)) + nb * Server.thrustit;
-
+						int max = 200;
+						if (nb > 0 && (veh.vitessX < max && veh.vitessY < max)) {
+							double v_x = veh.vitessX + Server.turnit * Math.cos(veh.angle) *  nb;
+							double v_y = veh.vitessY + Server.turnit * Math.sin(veh.angle) *  nb;
+							
+							veh.vitessX = v_x;
+							veh.vitessY = v_y;
+						} else if (nb == 0) {
+							veh.vitessX = 0;
+							veh.vitessY = 0;
+						}
+						double old_X = veh.posX;
+						double old_Y = veh.posY;
+						
 						veh.posX = veh.posX + veh.vitessX;
 						veh.posY = veh.posY + veh.vitessY;
 						Server.vehicules.put(client, veh);
-						System.out.println("veh angle " + veh.angle);
-
-						if (Math.abs(Server.objectifX - veh.posX) < 50 && Math.abs(Server.objectifY - veh.posY) < 50) {
+						
+						// Detection de collision entre l'objectif et le vehicule
+						/* on teste si la position de l'objectif 
+						 * est entre l'ancienne position et la nouvelle*/
+						
+						if(((Math.abs(old_X - Server.objectifX) < 50) && (Math.abs(Server.objectifX - veh.posX) < 50))
+								&&
+						   ((Math.abs(Server.objectifY - old_Y) < 50) && (Math.abs(veh.posY - Server.objectifY) < 50)))
+						{
+							System.out.println(Server.objectifX + "  VechX " + veh.posX);
+							System.out.println(" diifff X" + Math.abs(Server.objectifX - veh.posX));
+							System.out.println(" diifff Y"  + Math.abs(Server.objectifY - veh.posY));
 							veh.score++;
-							Server.objectifX = Math.random() * 1000;
-							Server.objectifY = Math.random() * 1000;
+							Server.objectifX = Math.random() * 600;
+							Server.objectifY = Math.random() * 800;
+							String scores = "";
+
+							for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
+								scores += e.getKey() + ":" + e.getValue().score + "|";
+							}
+							scores = scores.substring(0, scores.length() - 1);
+							bfOut.println("NEWOBJ/X" + Server.objectifX + "Y" + Server.objectifY + "/" + scores);
+
+						}
+												
+						if (Math.abs(Server.objectifX - veh.posX) < 50 && Math.abs(Server.objectifY - veh.posY) < 50) {
+							System.out.println(Server.objectifX + "  VechX " + veh.posX);
+							System.out.println(" diifff X" + Math.abs(Server.objectifX - veh.posX));
+							System.out.println(" diifff Y"  + Math.abs(Server.objectifY - veh.posY));
+							veh.score++;
+							Server.objectifX = Math.random() * 600;
+							Server.objectifY = Math.random() * 800;
+							String scores = "";
+
+							for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
+								scores += e.getKey() + ":" + e.getValue().score + "|";
+							}
+							scores = scores.substring(0, scores.length() - 1);
+							bfOut.println("NEWOBJ/X" + Server.objectifX + "Y" + Server.objectifY + "/" + scores);
+						}else if (Math.abs(Server.objectifX - old_X) < 50 && Math.abs(Server.objectifY - old_Y) < 50) {
+							System.out.println(Server.objectifX + "  VechX " + veh.posX);
+							System.out.println(" diifff X" + Math.abs(Server.objectifX - veh.posX));
+							System.out.println(" diifff Y"  + Math.abs(Server.objectifY - veh.posY));
+							veh.score++;
+							Server.objectifX = Math.random() * 600;
+							Server.objectifY = Math.random() * 800;
 							String scores = "";
 
 							for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
@@ -118,6 +172,7 @@ public class Work implements Runnable {
 							scores = scores.substring(0, scores.length() - 1);
 							bfOut.println("NEWOBJ/X" + Server.objectifX + "Y" + Server.objectifY + "/" + scores);
 						}
+
 
 						// Winner
 						if (veh.score == Server.winCap) {
@@ -128,107 +183,15 @@ public class Work implements Runnable {
 							scores = scores.substring(0, scores.length() - 1);
 							bfOut.println("WINNER/" + scores);
 						}
+						
 						break;
-
+						
+					
+						
 					default:
 						break;
 					}
 
-					// if (arg[0].equals("CONNECT")) {
-					// if (Server.vehicules.containsKey(arg[1])) {
-					//
-					// String str = "DENIED/";
-					// bfOut.println(str);
-					//
-					// } else {
-					// client = arg[1];
-					// Vehicule v = new Vehicule();
-					//
-					// Server.vehicules.put(arg[1], v);
-					//
-					// Boolean b = Server.vehicules.get(arg[1]).phase;
-					//
-					// String str = "WELCOME/";
-					// if (b)
-					// str += "jeu/";
-					// else
-					// str += "attente/";
-					// String scores = "";
-					// for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
-					// scores += e.getKey() + ":" + e.getValue().score + "|";
-					// }
-					//
-					// // Server.broadcast("NEWPLAYER/" + arg[1],
-					// // InetAddress.getByName("255.255.255.255"));
-					// Server.broadcast("NEWPLAYER/" + arg[1], numberThread);
-					// scores = scores.substring(0, scores.length() - 1);
-					// str += scores + "/";
-					// str += "X" + Server.objectifX + "Y" + Server.objectifY;
-					// bfOut.println(str);
-					// }
-					//
-					// }
-					//
-					// if (arg[0].equals("EXIT")) {
-					// System.out.println("A player is gone : " + arg[1]);
-					// Server.vehicules.remove(arg[1].toString());
-					// System.out.println(Server.vehicules.size());
-					// System.out.println(Server.vehicules);
-					// // Server.broadcast("PLAYERLEFT/" +
-					// arg[1],InetAddress.getByName("255.255.255.255"));
-					// Server.broadcast("PLAYERLEFT/" + arg[1], numberThread);
-					// Server.socks.remove(numberThread);
-					// }
-					//
-					// if (arg[0].equals("NEWCOM")) {
-					// String[] com = arg[1].split("T");
-					// double a = Double.parseDouble(com[0].substring(1, com[0].length()));
-					// int nb = Integer.parseInt(com[1]);
-					// System.out.println("A " + a + " T " + nb);
-					// // a revoir plus tard !!!!!!!!!!!!!!!
-					// Vehicule veh = Server.vehicules.get(client);
-					// System.out.println(veh);
-					// System.out.println("veh angle "+veh.angle);
-					// System.out.println("");
-					//
-					// veh.angle = a;
-					//
-					// veh.vitessX = (veh.vitessX +
-					// Server.turnit*Math.cos(veh.angle))+nb*Server.thrustit;
-					// veh.vitessY = (veh.vitessY +
-					// Server.turnit*Math.sin(veh.angle))+nb*Server.thrustit;
-					//
-					// veh.posX = veh.posX + veh.vitessX;
-					// veh.posY = veh.posY + veh.vitessY;
-					// Server.vehicules.put(client, veh);
-					// System.out.println("veh angle "+veh.angle);
-					// // le vehicule passe a proximité d'un objectif
-					// if (Math.abs(Server.objectifX - veh.posX) < 50 && Math.abs(Server.objectifY -
-					// veh.posY) < 50) {
-					// veh.score++;
-					// Server.objectifX = Math.random() * 1000;
-					// Server.objectifY = Math.random() * 1000;
-					// String scores = "";
-					//
-					// for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
-					// scores += e.getKey() + ":" + e.getValue().score + "|";
-					// }
-					// scores = scores.substring(0, scores.length() - 1);
-					// bfOut.println("NEWOBJ/X" + Server.objectifX + "Y" + Server.objectifY + "/" +
-					// scores);
-					// }
-					//
-					// // Winner
-					// if (veh.score == Server.winCap) {
-					// String scores = "";
-					// for (Entry<String, Vehicule> e : Server.vehicules.entrySet()) {
-					// scores += e.getKey() + ":" + e.getValue().score + "|";
-					// }
-					// scores = scores.substring(0, scores.length() - 1);
-					// bfOut.println("WINNER/" + scores);
-					// }
-					//
-					// }
 				}
 
 			}

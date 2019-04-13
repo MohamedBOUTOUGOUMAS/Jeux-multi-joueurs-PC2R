@@ -1,12 +1,30 @@
 var socket = io();
-var currentShip;
+
+
+//chat
+var input = document.getElementById("input");
+var button = document.getElementById("sub");
+var chatbox = document.getElementById("chatBox");
+
+button.addEventListener('click', function(){
+  console.log(input.value)
+  socket.emit("ENVOI", {content : input.value});
+
+})
+
+socket.on('RECEPTION', function(msg){
+
+  chatbox.innerHTML += "<p style = 'width : 98%; padding : 5px; background-color : #e1e1e1; border-radius : 2px'>"+msg+"</p>" 
+
+})
 
 var angle = 0;
 var clics = 0;
 var step = 0;
 
-var turnit = 150;
-var thrustit = 100;
+var turnit = 0.01;
+var thrustit = 10;
+var refresh_tickrate = 300;
 
 /**
  * for the design :
@@ -14,7 +32,7 @@ var thrustit = 100;
  */
 var playersConnected = [];
 
-socket.on('WELCOME', function(swcoord){
+socket.on('WELCOME', function (swcoord) {
 
   /**
    * Config phaser
@@ -83,7 +101,7 @@ socket.on('WELCOME', function(swcoord){
     const obstacles = map.createStaticLayer("obstacles", tileset, 0, 0);
 
     obstacles.setCollisionByProperty({
-      collides: true
+      collides: false
     });
 
     // this.physics.add.collider(this.ship, this.bomb);
@@ -106,27 +124,24 @@ socket.on('WELCOME', function(swcoord){
     // });
 
     socket.on('SESSION', (sscoord) => {
-      
+
       self.enemyShips.destroy(true);
       self.enemyShips = self.physics.add.group();
 
-      sscoord.forEach(elt => {
+      sscoord.coords.forEach(elt => {
 
         const allPlayersInfo = elt.split(':');
         const enemyId = allPlayersInfo[0];
         const coord = getXY(allPlayersInfo[1]);
-        console.log(enemyId);
+        // console.log(enemyId);
 
         if (enemyId !== swcoord.playerId) {
           // enemyShip.push({ id: playerInfo[0], x: coord.x, y: coord.y, rot: 180 });
           addEnemyShip(self, [enemyId, coord]);
         } else {
           addNewShip(self, coord);
-          if(self.ship)
-            console.log(self.ship)
         }
 
-        console.log(self)
 
         // console.log(playerInfo[0]);
         // console.log(playerInfo[1]);
@@ -135,69 +150,67 @@ socket.on('WELCOME', function(swcoord){
 
       console.log('session start client');
 
-      
-
-
-    });
-
-
-    socket.on('TICK', (vcoords) =>{
+      socket.on('TICK', (vcoords) => {
 
         vcoords.forEach(elt => {
-
+  
           const allPlayersInfo = elt.split(':');
           const enemyId = allPlayersInfo[0];
           const vcoord = getXYVXVY(allPlayersInfo[1]);
-          console.log("vcoords");
-          console.log(vcoord);
+          // console.log(vcoord);
           self.enemyShips.getChildren().forEach((enemyShip) => {
             if (enemyId === enemyShip.enemyId) {
-              // enemyShip.body.x = vcoord.x;
-              // enemyShip.body.y = vcoord.y;
-              enemyShip.body.setRotation(vcoord.t);
-              enemyShip.body.setVelocity(vcoord.vx,vcoord.vy);
+              enemyShip.setX(vcoord.x);
+              enemyShip.setY(vcoord.y);
+              enemyShip.setRotation(vcoord.t);
+              // enemyShip.setVelocity(vcoord.vx, vcoord.vy);
             }
           });
-          if(swcoord.playerId === enemyId){
+          if (swcoord.playerId === enemyId) {
+            // self.physics.velocityFromRotation(self.ship.rotation, 100, new Phaser.Math.Vector2(vcoord.vx, vcoord.vy));
+            self.ship.setX(vcoord.x);
+            self.ship.setY(vcoord.y);
             self.ship.setRotation(vcoord.t);
-            self.ship.setVelocity(vcoord.vx, vcoord.vy);
+            // self.ship.setVelocity(vcoord.vx, vcoord.vy);
           }
-          
         });
-
-    });
-
-    socket.on('PLAYERLEFT', (enemyId) => {
-      console.log('Player : ' + enemyId + ' is gone !');
-      console.log(enemyId);
-      console.log(self.enemyShips.getLength());
-      self.enemyShips.destroy(true);
-      self.enemyShips.getChildren().forEach((enemyShip) => {
-        if (enemyId === enemyShip.enemyId) {
-          console.log('fuck');
-          enemyShip.destroy();
-        }
       });
+
+      socket.on('PLAYERLEFT', (enemyId) => {
+        console.log('Player : ' + enemyId + ' is gone !');
+        console.log(enemyId);
+        console.log(self.enemyShips.getLength());
+        self.enemyShips.destroy(true);
+        self.enemyShips.getChildren().forEach((enemyShip) => {
+          if (enemyId === enemyShip.enemyId) {
+            console.log('fuck');
+            enemyShip.destroy();
+          }
+        });
+      });
+
+      socket.on('NEWOBJ', (awardPosition) => {
+        awardPosition = getXY(awardPosition);
+        if (self.award) self.award.destroy();
+        self.award = self.physics.add.image(awardPosition.x, awardPosition.y, 'award').setDisplaySize(53, 40);
+      });
+
+      setInterval(() => {// setInterval(fun(),ms)
+        socket.emit('NEWCOM', { angle: angle, step: step });
+        // step = 0;
+      }, 1000);
+
     });
 
     /**  
      * generate event !!
-     */
-    /*
-    this.id = 'toto'; // A initialiser !! 
-    
-    this.socket.on('scoresUpdated', function (scores) {
-      this.score.setText(scores[this.id]);
-    });
-    
-    this.socket.on('awardPosition', function (awardPosition) {
-      if (this.award) this.award.destroy();
-      this.award = this.physics.add.image(awardPosition.x, awardPosition.y, 'award').setDisplaySize(53, 40);
-      this.award.physics.add.overlap(this.ship, this.award, function () {
-        this.socket.emit('awardEarned');
-      }, null, this);
-    });
     */
+
+    // this.id = 'toto'; // A initialiser !! 
+
+    // this.socket.on('scoresUpdated', function (scores) {
+    //   this.score.setText(scores[this.id]);
+    // });
 
     /**
      * Test : Randomly positioning the award && set score
@@ -217,7 +230,7 @@ socket.on('WELCOME', function(swcoord){
 
   };
 
-  
+
   function update() {
     if (this.ship) {
       /* 
@@ -225,27 +238,17 @@ socket.on('WELCOME', function(swcoord){
       */
       if (this.cursor.left.isDown) {
         //this.ship.setAngularVelocity(-turnit);
+        // console.log(this.ship.rotation);
+        anticlok(this.ship);
         angle = this.ship.rotation;
       }
       else if (this.cursor.right.isDown) {
         //this.ship.setAngularVelocity(turnit);
+        clock(this.ship);
         angle = this.ship.rotation;
       }
       else {
         //this.ship.setAngularVelocity(0);
-      }
-
-      if (this.cursor.up.isDown) {
-        // console.log("Pos before x :" + this.ship.x);
-        // console.log("Pos before y :" + this.ship.y);
-        step++;
-        // this.physics.velocityFromRotation(constthis.ship.rotation, 100, this.ship.body.velocity);
-        //this.physics.velocityFromRotation(this.ship.rotation, thrustit, this.ship.body.acceleration);
-      
-      }
-      else if (this.cursor.down.isDown) {
-        //this.ship.setAcceleration(this.ship.body.acceleration - 5);
-        step--;
       }
       // console.log("Pos after x :" + this.ship.x);
       // console.log("Pos after y :" + this.ship.y);s
@@ -269,17 +272,18 @@ socket.on('WELCOME', function(swcoord){
         this.add.bitmapText(400, 350, 'tGamef', 'WIN', 64);
       }
 
-      // this.physics.add.collider(this.ship, this.therecar);
-      // this.physics.add.collider(this.therecar, this.bomb, () => { // A revoir !!!
+      //     // this.physics.add.collider(this.ship, this.therecar);
+      //     // this.physics.add.collider(this.therecar, this.bomb, () => { // A revoir !!!
 
-      //   this.therecar.disableBody(true, false);
-      //   this.bomb.disableBody(true, true);
+      //     //   this.therecar.disableBody(true, false);
+      //     //   this.bomb.disableBody(true, true);
 
-      //   let x = this.therecar.x;
-      //   let y = this.therecar.y;
+      //     //   let x = this.therecar.x;
+      //     //   let y = this.therecar.y;
 
-      this.physics.add.collider(this.award, this.zone);
-      this.physics.world.wrap(this.ship, 50);
+      //     this.physics.add.collider(this.award, this.zone);
+      this.physics.world.wrap(this.ship, 5);
+      this.physics.world.wrap(this.enemyShips, 5);
 
     }
   };
@@ -293,12 +297,16 @@ socket.on('WELCOME', function(swcoord){
 
 });
 
-  setInterval(() => {
-    socket.emit('NEWCOM', { rotation: angle, step: step });
-  }, 5000);
 
+window.onkeyup = function (e) {
+  var key = e.keyCode ? e.keyCode : e.which;
 
-
+  if (key == 38) {
+    step += thrustit;
+  } else if (key == 40) {
+    step -= thrustit;
+  }
+}
 
 function moveAward(game, coord) {
 
@@ -322,8 +330,8 @@ function getXY(coord) {
 
   var indexX = coord.indexOf('X');
   var indexY = coord.indexOf('Y');
-  var x = parseInt(coord.substring(indexX + 1, indexY));
-  var y = parseInt(coord.substring(indexY + 1));
+  var x = parseFloat(coord.substring(indexX + 1, indexY));
+  var y = parseFloat(coord.substring(indexY + 1));
 
   return { x: x, y: y };
 
@@ -336,12 +344,12 @@ function getXYVXVY(coord) {
   var indexVX = coord.indexOf('VX');
   var indexVY = coord.indexOf('VY');
   var indexT = coord.indexOf('T');
-  var x = parseInt(coord.substring(indexX + 1, indexY));
-  var y = parseInt(coord.substring(indexY + 1));
-  var vx = parseInt(coord.substring(indexVX + 2, indexVY));
-  var vy = parseInt(coord.substring(indexVY + 2, indexT));
-  var t = parseInt(coord.substring(indexT + 1));
-  return { x: x, y: y ,vx: vx, vy: vy, t: t};
+  var x = parseFloat(coord.substring(indexX + 1, indexY));
+  var y = parseFloat(coord.substring(indexY + 1));
+  var vx = parseFloat(coord.substring(indexVX + 2, indexVY));
+  var vy = parseFloat(coord.substring(indexVY + 2, indexT));
+  var t = parseFloat(coord.substring(indexT + 1));
+  return { x: x, y: y, vx: vx, vy: vy, t: t };
 
 }
 
@@ -356,4 +364,11 @@ function addEnemyShip(game, info) {
   enemyShip.body.bounce.setTo(1);
   enemyShip.enemyId = enemyId;
   game.enemyShips.add(enemyShip);
+}
+
+function clock(ship) {
+  ship.rotation += turnit;
+}
+function anticlok(ship) {
+  ship.rotation -= turnit;
 }

@@ -24,4 +24,60 @@ public class Vehicule {
 		
 	}
 
+	public void setPosX(double posX) {
+		this.posX = posX;
+	}
+
+	public void setPosY(double posY) {
+		this.posY = posY;
+	}
+
+	public void setAngle(double angle) {
+		this.angle = angle;
+	}
+
+	public void setVitessX(double vitessX) {
+		this.vitessX = vitessX;
+	}
+
+	public void setVitessY(double vitessY) {
+		this.vitessY = vitessY;
+	}
+
+	public void setPhase(Boolean phase) {
+		this.phase = phase;
+	}
+
+	public void setScore(int score) {
+		this.score = score;
+	}
+
+	public double getPosX() {
+		return posX;
+	}
+
+	public double getPosY() {
+		return posY;
+	}
+
+	public double getAngle() {
+		return angle;
+	}
+
+	public double getVitessX() {
+		return vitessX;
+	}
+
+	public double getVitessY() {
+		return vitessY;
+	}
+
+	public Boolean getPhase() {
+		return phase;
+	}
+
+	public int getScore() {
+		return score;
+	}
+
 }

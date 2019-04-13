@@ -64,7 +64,7 @@ io.on('connection', function (socket) {
     sock.write('CONNECT/' + playerId + '\r\n');
 
     sock.on('data', function (data) {
-        
+
         console.log(data.toString());
         var msg = data.toString().replace(/\n/g, '').split('/');
 
@@ -74,14 +74,9 @@ io.on('connection', function (socket) {
                 var cord = msg[3];
                 var x = parseInt(cord.substring(cord.indexOf('X') + 1, cord.indexOf('Y')));
                 var y = parseInt(cord.substring(cord.indexOf('Y') + 1));
-                console.log({ cord: { x: x, y: y } });
+                // console.log({ cord: { x: x, y: y } });
                 socket.emit('WELCOME', { cord: { x: x, y: y }, playerId: playerId });
                 break;
-            // case 'SESSION':
-            //     console.log('session');
-
-            //     break;
-
             case 'NEWPLAYER':
                 console.log('newplayer : ' + msg[1]);
                 playersConnected.push(msg[1]);
@@ -91,15 +86,29 @@ io.on('connection', function (socket) {
             case 'SESSION':
                 console.log("session");
                 var coords = msg[1].split('|');
-                console.log(coords);
-                io.emit('SESSION', coords);
+                var ocoords = msg[3].split('|');
+                // console.log(coords);
+                io.emit('SESSION', {coords: coords, ocoords : ocoords});
                 break;
 
             case 'TICK':
                 console.log("tick");
                 var vcoords = msg[1].split('|');
-                console.log(vcoords);
+                // console.log(vcoords);
                 io.emit('TICK', vcoords);
+                break;
+
+            case 'NEWOBJ':
+                console.log("NEWOBJ");
+                //console.log(msg[1]);
+                io.emit('NEWOBJ', msg[1]);
+                break;
+                
+            case 'RECEPTION':
+                console.log("RECEPTION");
+                io.emit('RECEPTION', msg[1]);
+                break;
+
             default:
                 console.log('default');
                 break;
@@ -110,8 +119,14 @@ io.on('connection', function (socket) {
     socket.on('NEWCOM', function (comms) {
         console.log("NEWCOM")
         console.log(comms);
-        sock.write('NEWCOM/A' + comms.rotation + 'T' + comms.step + '\r\n');
+        sock.write('NEWCOM/A' + comms.angle + 'T' + comms.step + '\r\n');
     });
+
+    socket.on('ENVOI', function(msg){
+        console.log("envoi");
+        console.log(msg);
+        sock.write('ENVOI/' + msg.content +'\r\n');
+    })
 
     socket.on('disconnect', function () {
         delete playersConnected[playerId];
